@@ -1,0 +1,42 @@
+# .github/workflows/pr-check.yml
+
+name: PR checks
+
+on:
+  pull_request:
+    branches: [dev, main]    # runs on PRs targeting dev OR main
+
+jobs:
+  test:
+    name: Lint and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Run tests
+        run: npm test --if-present
+
+  docker-build-check:
+    name: Docker build check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build dev image (verify Dockerfile works)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false          # ← do NOT push on PR, just verify it builds
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
